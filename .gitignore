@@ -15,6 +15,7 @@ env/
 
 # Notes saved by the agent (may contain personal information)
 notes.txt
+/project.md
 
 # IDE settings
 .vscode/

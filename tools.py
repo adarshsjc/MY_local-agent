@@ -4,19 +4,19 @@ from security import WORKSPACE_DIR, safe_eval_expression, safe_resolve_path
 
 def get_current_time() -> str:
     """Get the current date, day of week, and time."""
-    print("\n  ⚙️  [Tool Executing] Checking current system time...")
+    print("\n  ⚙️  [Tool] Checking system time...")
     return datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
 
 
 def calculate(expression: str) -> str:
     """Safely evaluate a basic math expression like '14 * 23 + 5'."""
-    print(f"\n  ⚙️  [Tool Executing] Calculating: '{expression}'...")
+    print(f"\n  ⚙️  [Tool] Calculating: '{expression}'...")
     return safe_eval_expression(expression)
 
 
 def create_or_write_file(filename: str, content: str) -> str:
     """Create or overwrite a file strictly inside the sandboxed project workspace."""
-    print(f"\n  ⚙️  [Tool Executing] Writing file: '{filename}' ({len(content)} chars)...")
+    print(f"\n  ⚙️  [Tool] Writing file: '{filename}' ({len(content)} chars)...")
     try:
         target = safe_resolve_path(filename)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -31,7 +31,7 @@ def create_or_write_file(filename: str, content: str) -> str:
 
 def read_file(filename: str) -> str:
     """Read the content of a file strictly inside the sandboxed project workspace."""
-    print(f"\n  ⚙️  [Tool Executing] Reading file: '{filename}'...")
+    print(f"\n  ⚙️  [Tool] Reading file: '{filename}'...")
     try:
         target = safe_resolve_path(filename)
         if not target.exists() or not target.is_file():
@@ -43,9 +43,30 @@ def read_file(filename: str) -> str:
         return f"Error reading file: {e}"
 
 
+def delete_file(filename: str) -> str:
+    """Delete a specific file strictly inside the sandboxed workspace."""
+    print(f"\n  ⚙️  [Tool] Deleting file: '{filename}'...")
+    try:
+        target = safe_resolve_path(filename)
+        if target == WORKSPACE_DIR:
+            return "Security Error: Cannot delete the root workspace folder."
+        if not target.exists():
+            return f"Error: File '{filename}' does not exist."
+        if not target.is_file():
+            return f"Error: '{filename}' is a directory. Only individual files can be deleted."
+
+        target.unlink()
+        rel_path = target.relative_to(WORKSPACE_DIR).as_posix()
+        return f"Success: File '{rel_path}' has been permanently deleted from workspace."
+    except PermissionError as pe:
+        return str(pe)
+    except Exception as e:
+        return f"Error deleting file: {e}"
+
+
 def list_workspace_files() -> str:
     """List all available files currently stored inside the sandboxed workspace."""
-    print("\n  ⚙️  [Tool Executing] Listing workspace files...")
+    print("\n  ⚙️  [Tool] Listing workspace files...")
     try:
         files = [
             f.relative_to(WORKSPACE_DIR).as_posix()
