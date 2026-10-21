@@ -1,29 +1,33 @@
 from pathlib import Path
 
-# Workspace directory pinned strictly to a 'workspace' subfolder
+# Sandboxed workspace directory
 WORKSPACE_DIR = (Path(__file__).parent / "workspace").resolve()
 
 
-def init_workspace() -> Path:
-    """Ensures the dedicated AI workspace directory exists."""
-    WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
-    return WORKSPACE_DIR
+def init_workspace() -> tuple[Path, bool]:
+    """
+    Checks if the workspace folder already exists.
+    Reuses existing directory if present; creates it only if missing.
+    Returns (WORKSPACE_DIR, already_existed).
+    """
+    already_existed = WORKSPACE_DIR.is_dir()
+    if not already_existed:
+        WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+    return WORKSPACE_DIR, already_existed
 
 
 def safe_resolve_path(filename: str) -> Path:
     """
-    Resolves a relative filename and ensures it remains strictly
-    inside WORKSPACE_DIR. Prevents '../' traversal and absolute paths.
+    Resolves relative path and verifies it stays strictly inside WORKSPACE_DIR.
+    Prevents path climbing (../) and absolute system paths.
     """
     path_obj = Path(filename)
 
-    # Reject absolute paths (e.g. C:\Windows, /etc/passwd)
     if path_obj.is_absolute():
         raise PermissionError("Security Violation: Absolute paths are strictly forbidden.")
 
     resolved = (WORKSPACE_DIR / path_obj).resolve()
 
-    # Verify that the resolved path does not escape the workspace boundary
     try:
         resolved.relative_to(WORKSPACE_DIR)
     except ValueError:
@@ -36,9 +40,8 @@ def safe_eval_expression(expression: str) -> str:
     """Evaluates basic math expressions using a strict character allowlist and no builtins."""
     allowed_chars = set("0123456789+-*/(). ")
     if not set(expression) <= allowed_chars:
-        return "Security Error: Only digits and operators (+, -, *, /, (), .) are allowed."
+        return "Security Error: Only numbers and operators (+, -, *, /, (), .) are allowed."
     try:
-        # Evaluate with zero globals/builtins to prevent arbitrary execution
         result = eval(expression, {"__builtins__": None}, {})
         return str(result)
     except Exception as e:
